@@ -6346,11 +6346,13 @@ MonoBehaviour:
   canSprint: 1
   canJump: 1
   canCrouch: 1
+  canHeadbob: 1
   sprintKey: 304
   jumpKey: 32
   crouchKey: 99
   walkSpeed: 3
   sprintSpeed: 6
+  crouchSpeed: 1.5
   jumpForce: 8
   gravity: 30
   lookSpeedX: 2
@@ -6362,6 +6364,12 @@ MonoBehaviour:
   timeToCrouch: 0.25
   crouchingCenter: {x: 0, y: 0.5, z: 0}
   standingCenter: {x: 0, y: 0, z: 0}
+  walkBobSpeed: 14
+  walkBobAmount: 0.03
+  sprintBobSpeed: 18
+  sprintBobAmount: 0.06
+  crouchBobSpeed: 8
+  crouchBobAmount: 0.025
 --- !u!43 &427432456
 Mesh:
   m_ObjectHideFlags: 0
