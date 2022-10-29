@@ -19,11 +19,13 @@ public class FirstPersonController : MonoBehaviour
     [SerializeField] private bool canCrouch = true;
     [SerializeField] private bool canHeadbob = true;
     [SerializeField] private bool willSlideOnSlopes = true;
+    [SerializeField] private bool canZoom = true;
 
     [Header("Controls")]
     [SerializeField] private KeyCode sprintKey = KeyCode.LeftShift;
     [SerializeField] private KeyCode jumpKey = KeyCode.Space;
     [SerializeField] private KeyCode crouchKey = KeyCode.C;
+    [SerializeField] private KeyCode zoomKey = KeyCode.Mouse1;
 
     [Header("Movement Parameters")]
     [SerializeField] private float walkSpeed = 3.0f;
@@ -60,6 +62,12 @@ public class FirstPersonController : MonoBehaviour
     private float defaultYPos = 0.0f;
     private float headbobTimer;
 
+    [Header("Zoom Parameters")]
+    [SerializeField] private float timeToZoom = 0.3f;
+    [SerializeField] private float zoomFOV = 30.0f;
+    private float defaultFOV;
+    private Coroutine zoomRoutine;
+
     // SLIDING PARAMETERS
     private Vector3 hitPointNormal;
     private bool IsSliding
@@ -92,6 +100,7 @@ public class FirstPersonController : MonoBehaviour
         playerCamera = GetComponentInChildren<Camera>();    
         characterController = GetComponent<CharacterController>();
         defaultYPos = playerCamera.transform.localPosition.y;
+        defaultFOV = playerCamera.fieldOfView;
         Cursor.lockState = CursorLockMode.Locked;   
         Cursor.visible = false; 
     }
@@ -107,7 +116,8 @@ public class FirstPersonController : MonoBehaviour
             if (canJump) HandleJump();
             if (canCrouch) HandleCrouch();
             if (canHeadbob) HandleHeadbob();
-                
+            if (canZoom) HandleZoom();
+
             ApplyFinalMovements();
         }
     }
@@ -140,6 +150,32 @@ public class FirstPersonController : MonoBehaviour
     {
         if (!ShouldCrounch) return;
         StartCoroutine(CrouchStand());
+    }
+
+    private void HandleZoom()
+    {
+        if (Input.GetKeyDown(zoomKey))
+        {
+            if(zoomRoutine != null)
+            {
+                StopCoroutine(zoomRoutine);
+                zoomRoutine = null;
+            }
+
+            zoomRoutine = StartCoroutine(ToggleZoom(true));
+        }
+
+        if (Input.GetKeyUp(zoomKey))
+        {
+            if (zoomRoutine != null)
+            {
+                StopCoroutine(zoomRoutine);
+                zoomRoutine = null;
+            }
+
+            zoomRoutine = StartCoroutine(ToggleZoom(false));
+        }
+
     }
 
     private void HandleHeadbob()
@@ -200,5 +236,22 @@ public class FirstPersonController : MonoBehaviour
         isCrouching = !isCrouching;
 
         duringCrouchAnimation = false;
+    }
+
+    private IEnumerator ToggleZoom(bool isEnter)
+    {
+        float targetFOV = isEnter ? zoomFOV : defaultFOV;
+        float startingFOV = playerCamera.fieldOfView;
+        float timePassed = 0.0f;
+
+        while(timePassed < timeToZoom)
+        {
+            playerCamera.fieldOfView = Mathf.Lerp(startingFOV, targetFOV, timePassed/timeToZoom);
+            timePassed += Time.deltaTime;
+            yield return null;
+        }
+
+        playerCamera.fieldOfView = targetFOV;
+        zoomRoutine = null;
     }
 }
