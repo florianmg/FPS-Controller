@@ -21,6 +21,7 @@ public class FirstPersonController : MonoBehaviour
     [SerializeField] private bool willSlideOnSlopes = true;
     [SerializeField] private bool canZoom = true;
     [SerializeField] private bool canInteract = true;
+    [SerializeField] private bool useFootSteps = true;
 
     [Header("Controls")]
     [SerializeField] private KeyCode sprintKey = KeyCode.LeftShift;
@@ -70,6 +71,17 @@ public class FirstPersonController : MonoBehaviour
     private float defaultFOV;
     private Coroutine zoomRoutine;
 
+    [Header("Footstep Parameters")]
+    [SerializeField] private float baseStepSpeed = 0.5f;
+    [SerializeField] private float crouchStepMultiplier = 1.5f;
+    [SerializeField] private float sprintStepMultiplier = 0.6f;
+    [SerializeField] private AudioSource footstepAudioSource = default;
+    [SerializeField] private AudioClip[] woodClips = default;
+    [SerializeField] private AudioClip[] defaultClips = default;
+    [SerializeField] private AudioClip[] grassClips = default;
+    private float footstepTimer = 0;
+    private float GetCurrentOffset => isCrouching ? baseStepSpeed * crouchStepMultiplier : IsSprinting ? baseStepSpeed * sprintStepMultiplier : baseStepSpeed;
+
     // SLIDING PARAMETERS
     private Vector3 hitPointNormal;
     private bool IsSliding
@@ -108,6 +120,7 @@ public class FirstPersonController : MonoBehaviour
     {
         playerCamera = GetComponentInChildren<Camera>();    
         characterController = GetComponent<CharacterController>();
+        footstepAudioSource = GetComponent<AudioSource>();
         defaultYPos = playerCamera.transform.localPosition.y;
         defaultFOV = playerCamera.fieldOfView;
         Cursor.lockState = CursorLockMode.Locked;   
@@ -131,6 +144,7 @@ public class FirstPersonController : MonoBehaviour
                 HandleInteractionCheck();
                 HandleInteractionInput();
             }
+            if (useFootSteps) HandleFootsteps();
 
             ApplyFinalMovements();
         }
@@ -228,6 +242,36 @@ public class FirstPersonController : MonoBehaviour
     {
         if(Input.GetKeyDown(interactKey) && currentInteractable != null && Physics.Raycast(playerCamera.ViewportPointToRay(interactionRayPoint), out RaycastHit hit, interactionDistance, interactionLayer)) {
             currentInteractable.OnInteract();
+        }
+    }
+
+    private void HandleFootsteps()
+    {
+        if (!characterController.isGrounded) return;
+        if (currentInput == Vector2.zero) return;
+        if (defaultClips.Length == 0) return;
+
+        footstepTimer -= Time.deltaTime;
+
+        if(footstepTimer <= 0)
+        {
+            if(Physics.Raycast(playerCamera.transform.position, Vector3.down, out RaycastHit hit, 2))
+            {
+                switch(hit.collider.tag)
+                {
+                    case "Footsteps/Wood":
+                        footstepAudioSource.PlayOneShot(woodClips[Random.Range(0, woodClips.Length - 1)]);
+                        break;
+                    case "Footsteps/Grass":
+                        footstepAudioSource.PlayOneShot(grassClips[Random.Range(0, grassClips.Length - 1)]);
+                        break;
+                    default:
+                        footstepAudioSource.PlayOneShot(defaultClips[Random.Range(0, defaultClips.Length - 1)]);
+                        break;
+                }
+            }
+
+            footstepTimer = GetCurrentOffset;
         }
     }
 
